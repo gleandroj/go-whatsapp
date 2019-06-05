@@ -3,7 +3,6 @@ package whatsapp
 import (
 	"fmt"
 	"os"
-	"strings"
 
 	"github.com/gleandroj/go-whatsapp/binary"
 	"github.com/gleandroj/go-whatsapp/binary/proto"
@@ -61,6 +60,22 @@ type DocumentMessageHandler interface {
 }
 
 /*
+The LocationMessageHandler interface needs to be implemented to receive location messages dispatched by the dispatcher.
+*/
+type LocationMessageHandler interface {
+	Handler
+	HandleLocationMessage(message LocationMessage)
+}
+
+/*
+The LiveLocationMessageHandler interface needs to be implemented to receive live location messages dispatched by the dispatcher.
+*/
+type LiveLocationMessageHandler interface {
+	Handler
+	HandleLiveLocationMessage(message LiveLocationMessage)
+}
+
+/*
 The JsonMessageHandler interface needs to be implemented to receive json messages dispatched by the dispatcher.
 These json messages contain status updates of every kind sent by WhatsAppWeb servers. WhatsAppWeb uses these messages
 to built a Store, which is used to save these "secondary" information. These messages may contain
@@ -80,22 +95,6 @@ type RawMessageHandler interface {
 	HandleRawMessage(message *proto.WebMessageInfo)
 }
 
-/**
-The ContactListHandler interface needs to be implemented to applky custom actions to contact lists dispatched by the dispatcher.
-*/
-type ContactListHandler interface {
-	Handler
-	HandleContactList(contacts []Contact)
-}
-
-/**
-The ChatListHandler interface needs to be implemented to apply custom actions to chat lists dispatched by the dispatcher.
-*/
-type ChatListHandler interface {
-	Handler
-	HandleChatList(contacts []Chat)
-}
-
 /*
 AddHandler adds an handler to the list of handler that receive dispatched messages.
 The provided handler must at least implement the Handler interface. Additionally implemented
@@ -106,71 +105,62 @@ func (wac *Conn) AddHandler(handler Handler) {
 	wac.handler = append(wac.handler, handler)
 }
 
-// RemoveHandler removes a handler from the list of handlers that receive dispatched messages.
-func (wac *Conn) RemoveHandler(handler Handler) bool {
-	i := -1
-	for k, v := range wac.handler {
-		if v == handler {
-			i = k
-			break
-		}
-	}
-	if i > -1 {
-		wac.handler = append(wac.handler[:i], wac.handler[i+1:]...)
-		return true
-	}
-	return false
-}
-
-// RemoveHandlers empties the list of handlers that receive dispatched messages.
-func (wac *Conn) RemoveHandlers() {
-	wac.handler = make([]Handler, 0)
-}
-
-func (wac *Conn) handle(message interface{}) {
+func handleMessage(message interface{}, handlers []Handler) {
 	switch m := message.(type) {
 	case error:
-		for _, h := range wac.handler {
+		for _, h := range handlers {
 			go h.HandleError(m)
 		}
 	case string:
-		for _, h := range wac.handler {
+		for _, h := range handlers {
 			if x, ok := h.(JsonMessageHandler); ok {
 				go x.HandleJsonMessage(m)
 			}
 		}
 	case TextMessage:
-		for _, h := range wac.handler {
+		for _, h := range handlers {
 			if x, ok := h.(TextMessageHandler); ok {
 				go x.HandleTextMessage(m)
 			}
 		}
 	case ImageMessage:
-		for _, h := range wac.handler {
+		for _, h := range handlers {
 			if x, ok := h.(ImageMessageHandler); ok {
 				go x.HandleImageMessage(m)
 			}
 		}
 	case VideoMessage:
-		for _, h := range wac.handler {
+		for _, h := range handlers {
 			if x, ok := h.(VideoMessageHandler); ok {
 				go x.HandleVideoMessage(m)
 			}
 		}
 	case AudioMessage:
-		for _, h := range wac.handler {
+		for _, h := range handlers {
 			if x, ok := h.(AudioMessageHandler); ok {
 				go x.HandleAudioMessage(m)
 			}
 		}
 	case DocumentMessage:
-		for _, h := range wac.handler {
+		for _, h := range handlers {
 			if x, ok := h.(DocumentMessageHandler); ok {
 				go x.HandleDocumentMessage(m)
 			}
 		}
+	case LocationMessage:
+		for _, h := range handlers {
+			if x, ok := h.(LocationMessageHandler); ok {
+				go x.HandleLocationMessage(m)
+			}
+		}
+	case LiveLocationMessage:
+		for _, h := range handlers {
+			if x, ok := h.(LiveLocationMessageHandler); ok {
+				go x.HandleLiveLocationMessage(m)
+			}
+		}
 	case *proto.WebMessageInfo:
-		for _, h := range wac.handler {
+		for _, h := range handlers {
 			if x, ok := h.(RawMessageHandler); ok {
 				go x.HandleRawMessage(m)
 			}
@@ -179,60 +169,8 @@ func (wac *Conn) handle(message interface{}) {
 
 }
 
-func (wac *Conn) handleContacts(contacts interface{}) {
-	var contactList []Contact
-	c, ok := contacts.([]interface{})
-	if !ok {
-		return
-	}
-	for _, contact := range c {
-		contactNode, ok := contact.(binary.Node)
-		if !ok {
-			continue
-		}
-
-		jid := strings.Replace(contactNode.Attributes["jid"], "@c.us", "@s.whatsapp.net", 1)
-		contactList = append(contactList, Contact{
-			jid,
-			contactNode.Attributes["notify"],
-			contactNode.Attributes["name"],
-			contactNode.Attributes["short"],
-		})
-	}
-	for _, h := range wac.handler {
-		if x, ok := h.(ContactListHandler); ok {
-			go x.HandleContactList(contactList)
-		}
-	}
-}
-
-func (wac *Conn) handleChats(chats interface{}) {
-	var chatList []Chat
-	c, ok := chats.([]interface{})
-	if !ok {
-		return
-	}
-	for _, chat := range c {
-		chatNode, ok := chat.(binary.Node)
-		if !ok {
-			continue
-		}
-
-		jid := strings.Replace(chatNode.Attributes["jid"], "@c.us", "@s.whatsapp.net", 1)
-		chatList = append(chatList, Chat{
-			jid,
-			chatNode.Attributes["name"],
-			chatNode.Attributes["count"],
-			chatNode.Attributes["t"],
-			chatNode.Attributes["mute"],
-			chatNode.Attributes["spam"],
-		})
-	}
-	for _, h := range wac.handler {
-		if x, ok := h.(ChatListHandler); ok {
-			go x.HandleChatList(chatList)
-		}
-	}
+func (wac *Conn) handle(message interface{}) {
+	handleMessage(message, wac.handler)
 }
 
 func (wac *Conn) dispatch(msg interface{}) {
@@ -253,10 +191,6 @@ func (wac *Conn) dispatch(msg interface{}) {
 			}
 		} else if message.Description == "response" && message.Attributes["type"] == "contacts" {
 			wac.updateContacts(message.Content)
-			wac.handleContacts(message.Content)
-		} else if message.Description == "response" && message.Attributes["type"] == "chat" {
-			wac.updateChats(message.Content)
-			wac.handleChats(message.Content)
 		}
 	case error:
 		wac.handle(message)
