@@ -106,15 +106,15 @@ type listenerWrapper struct {
 Creates a new connection with a given timeout. The websocket connection to the WhatsAppWeb servers get´s established.
 The goroutine for handling incoming messages is started
 */
-func NewConn(timeout time.Duration) (*Conn, error) {
+func NewConn(timeout time.Duration, clientName, shortClientName string) (*Conn, error) {
 	wac := &Conn{
 		handler:    make([]Handler, 0),
 		msgCount:   0,
 		msgTimeout: timeout,
 		Store:      newStore(),
 
-		longClientName:  "github.com/gleandroj/go-whatsapp",
-		shortClientName: "go-whatsapp",
+		longClientName:  clientName,
+		shortClientName: shortClientName,
 	}
 	return wac, wac.connect()
 }
@@ -138,7 +138,8 @@ func (wac *Conn) connect() (err error) {
 	}
 
 	headers := http.Header{"Origin": []string{"https://web.whatsapp.com"}}
-	wsConn, _, err := dialer.Dial("wss://web.whatsapp.com/ws", headers)
+	server := strconv.Itoa(rand.Intn(8) + 1)
+	wsConn, _, err := dialer.Dial("wss://w"+server+".web.whatsapp.com/ws", headers)
 	if err != nil {
 		return errors.Wrap(err, "couldn't dial whatsapp web websocket")
 	}
@@ -166,7 +167,7 @@ func (wac *Conn) connect() (err error) {
 	wac.wg = &sync.WaitGroup{}
 	wac.wg.Add(2)
 	go wac.readPump()
-	go wac.keepAlive(20000, 60000)
+	go wac.keepAlive(5000, 20000)
 
 	wac.loggedIn = false
 	return nil
