@@ -14,6 +14,8 @@ import (
 	"github.com/gleandroj/go-whatsapp/crypto/hkdf"
 )
 
+var waVersion = []int{0, 3, 3324}
+
 /*
 Session contains session individual information. To be able to resume the connection without scanning the qr code
 every time you should save the Session returned by Login and use RestoreSession the next time you want to login.
@@ -134,7 +136,7 @@ func (wac *Conn) Login(qrChan chan<- string) (Session, error) {
 
 	session.ClientId = base64.StdEncoding.EncodeToString(clientId)
 	//oldVersion=8691
-	login := []interface{}{"admin", "init", []int{0, 3, 3324}, []string{wac.longClientName, wac.shortClientName}, session.ClientId, true}
+	login := []interface{}{"admin", "init", waVersion, []string{wac.longClientName, wac.shortClientName}, session.ClientId, true}
 	loginChan, err := wac.write(login)
 	if err != nil {
 		return session, fmt.Errorf("error writing login: %v\n", err)
@@ -248,7 +250,7 @@ func (wac *Conn) RestoreSession(session Session) (Session, error) {
 	wac.listener["s1"] = make(chan string, 1)
 
 	//admin init
-	init := []interface{}{"admin", "init", []int{0, 3, 3324}, []string{wac.longClientName, wac.shortClientName}, session.ClientId, true}
+	init := []interface{}{"admin", "init", waVersion, []string{wac.longClientName, wac.shortClientName}, session.ClientId, true}
 	initChan, err := wac.write(init)
 	if err != nil {
 		wac.session = nil
