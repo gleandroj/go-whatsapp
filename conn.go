@@ -159,7 +159,7 @@ func NewConnWithClientName(timeout time.Duration, clientName, shortClientName st
 
 	go wac.readPump()
 	go wac.writePump()
-	go wac.keepAlive(20000, 90000)
+	go wac.keepAlive(20000, 60000)
 
 	return wac, nil
 
