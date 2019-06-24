@@ -8,7 +8,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"time"
-	"log"
 	"github.com/gleandroj/go-whatsapp/crypto/cbc"
 	"github.com/gleandroj/go-whatsapp/crypto/curve25519"
 	"github.com/gleandroj/go-whatsapp/crypto/hkdf"
