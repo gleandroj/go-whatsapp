@@ -1,12 +1,12 @@
 module github.com/gleandroj/go-whatsapp
 
+go 1.14
+
 require (
-	github.com/gleandroj/go-whatsapp/examples/echo v0.0.0-20190325075644-cc2581bbf24d // indirect
-	github.com/gleandroj/go-whatsapp/examples/restoreSession v0.0.0-20190325075644-cc2581bbf24d // indirect
-	github.com/gleandroj/go-whatsapp/examples/sendImage v0.0.0-20190325075644-cc2581bbf24d // indirect
-	github.com/gleandroj/go-whatsapp/examples/sendTextMessages v0.0.0-20190325075644-cc2581bbf24d // indirect
-	github.com/golang/protobuf v1.3.0
-	github.com/gorilla/websocket v1.4.0
-	github.com/pkg/errors v0.8.1
-	golang.org/x/crypto v0.0.0-20190308221718-c2843e01d9a2
+	github.com/Baozisoftware/qrcode-terminal-go v0.0.0-20170407111555-c0650d8dff0f
+	github.com/golang/protobuf v1.4.1
+	github.com/gorilla/websocket v1.4.2
+	github.com/mattn/go-colorable v0.1.6 // indirect
+	github.com/skip2/go-qrcode v0.0.0-20191027152451-9434209cb086 // indirect
+	golang.org/x/crypto v0.0.0-20200429183012-4b2356b1ed79
 )

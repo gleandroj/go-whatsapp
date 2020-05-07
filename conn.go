@@ -23,7 +23,7 @@ import (
 type metric byte
 
 const (
-	debugLog           metric = iota + 1
+	debugLog metric = iota + 1
 	queryResume
 	queryReceipt
 	queryMedia
@@ -67,7 +67,7 @@ const (
 type flag byte
 
 const (
-	ignore       flag = 1 << (7 - iota)
+	ignore flag = 1 << (7 - iota)
 	ackRequest
 	available
 	notAvailable
@@ -116,9 +116,9 @@ type Conn struct {
 	Store            *Store
 	ServerLastSeen   time.Time
 	connectionStatus *ConnectionStatus
-
-	longClientName  string
-	shortClientName string
+	clientVersion    string
+	longClientName   string
+	shortClientName  string
 }
 
 type wsMsg struct {
@@ -131,10 +131,12 @@ Creates a new connection with a given timeout. The websocket connection to the W
 The goroutine for handling incoming messages is started
 */
 func NewConn(timeout time.Duration) (*Conn, error) {
-	return NewConnWithClientName(timeout, "github.com/gleandroj/go-whatsapp", "go-whatsapp")
+	return NewConnWithClientName(timeout, "github.com/gleandroj/go-whatsapp", "go-whatsapp", "0.1.0")
 }
 
-func NewConnWithClientName(timeout time.Duration, clientName, shortClientName string) (*Conn, error) {
+/**
+ */
+func NewConnWithClientName(timeout time.Duration, clientName, shortClientName string, clientVersion string) (*Conn, error) {
 	wac := &Conn{
 		wsConn:           nil, // will be set in connect()
 		wsConnMutex:      sync.RWMutex{},
@@ -146,9 +148,9 @@ func NewConnWithClientName(timeout time.Duration, clientName, shortClientName st
 		msgTimeout:       timeout,
 		Store:            newStore(),
 		connectionStatus: newConnectionStatus(false),
-
-		longClientName:  clientName,
-		shortClientName: shortClientName,
+		clientVersion:    clientVersion,
+		longClientName:   clientName,
+		shortClientName:  shortClientName,
 	}
 
 	if err := wac.connect(); err != nil {

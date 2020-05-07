@@ -8,12 +8,13 @@ import (
 	"encoding/json"
 	"fmt"
 	"time"
+
 	"github.com/gleandroj/go-whatsapp/crypto/cbc"
 	"github.com/gleandroj/go-whatsapp/crypto/curve25519"
 	"github.com/gleandroj/go-whatsapp/crypto/hkdf"
 )
 
-var waVersion = []int{0, 3, 3330}
+var waVersion = []int{0, 4, 2080}
 
 /*
 Session contains session individual information. To be able to resume the connection without scanning the qr code
@@ -134,8 +135,7 @@ func (wac *Conn) Login(qrChan chan<- string) (Session, error) {
 	}
 
 	session.ClientId = base64.StdEncoding.EncodeToString(clientId)
-	//oldVersion=8691
-	login := []interface{}{"admin", "init", waVersion, []string{wac.longClientName, wac.shortClientName}, session.ClientId, true}
+	login := []interface{}{"admin", "init", waVersion, []string{wac.longClientName, wac.shortClientName, wac.clientVersion}, session.ClientId, true}
 	loginChan, err := wac.write(login)
 	if err != nil {
 		return session, fmt.Errorf("error writing login: %v\n", err)
